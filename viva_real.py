@@ -1,11 +1,17 @@
 from bs4 import BeautifulSoup
-import requests
+import requests, re, time
 import pandas as pd
+from selenium import webdriver
 from urllib.parse import urljoin
-import re
 
+
+#selenium Firefox driver
+driver = webdriver.Firefox()
+
+# O link deve estar ordenado por preço ascendente para garantir que o script irá funcionar
 url1 = "https://www.vivareal.com.br/venda/sp/atibaia/bairros/caetetuba/apartamento_residencial/?pagina="
-url2 = "#onde=,São Paulo,Atibaia,Bairros,Caetetuba,,,neighborhood,BR>Sao Paulo>NULL>Atibaia>Barrios>Caetetuba,,," # site
+url2 = "#onde=Brasil,S%C3%A3o%20Paulo,Atibaia,Bairros,Caetetuba,,,,BR%3ESao%20Paulo%3ENULL%3EAtibaia%3EBarrios%3ECaetetuba,,,&ordenar-por=preco:ASC" # site
+
 
 current_page = 1
 last_page = 1
@@ -15,8 +21,10 @@ df = pd.DataFrame(columns=['valor_m2','valor','m2','quartos','vagas','endereco',
 while current_page <= last_page:
     print("\nPage: " + str(current_page))
     url_pagination = url1 + str(current_page) + url2
-    response = requests.get(url_pagination)
-    soup = BeautifulSoup(response.content, 'html.parser')
+    driver.get(url_pagination)
+    time.sleep(4)
+    response = driver.execute_script("return document.getElementsByTagName('html')[0].innerHTML")
+    soup = BeautifulSoup(response, 'html.parser')
     links = soup.find_all('a',class_="property-card__content-link")
     #pagination
     ul_pages = soup.find_all('ul',class_="pagination__wrapper")[0]
@@ -45,6 +53,7 @@ while current_page <= last_page:
     current_page +=1
 
 
+driver.close()
 
 df = df.sort_values(by="valor_m2")
 df.to_csv('viva_real.csv', index=False)    
